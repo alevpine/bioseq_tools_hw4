@@ -1,172 +1,90 @@
-# Bioseq Tools (HW5 – Files & Modules)
+# Bioseq Tools
 
-A simple Python toolkit for basic bioinformatics operations:  
-working with DNA/RNA sequences, FASTQ files, and other biological data formats.
-
----
+A Python toolkit for basic bioinformatics operations using OOP approach:
+working with DNA, RNA, protein sequences, FASTQ filtering, and biological file processing.
 
 ## Overview
 
-### DNA/RNA Tools
-Functions for working with nucleotide sequences:
-- `is_nucleic_acid(sequence: str) -> bool` — check if a sequence is valid DNA or RNA  
-- `transcribe(sequence: str) -> str` — convert DNA to RNA  
-- `reverse(sequence: str) -> str` — reverse sequence order  
-- `complement(sequence: str) -> str` — get complementary sequence  
-- `reverse_complement(sequence: str) -> str` — get reverse complement  
-- `run_dna_rna_tools(*args: str)` — main wrapper for all DNA/RNA operations  
+### Biological Sequence Classes
 
----
+The core of the project is a hierarchy of classes for working with biological sequences:
 
-### FASTQ Tools
-Functions for reading, filtering, and writing FASTQ files:
-- `read_fastq(input_fastq: str)` — read FASTQ file into a dictionary  
-- `filter_fastq(seqs: dict, gc_bounds, length_bounds, quality_threshold)` — filter reads by GC content, length, and average quality  
-- `write_fastq(seqs: dict, output_fastq: str)` — save filtered reads into `filtered/` folder, safely avoiding overwriting  
-- `run_fastq_filter(input_fastq: str, output_fastq: str, **kwargs)` — main wrapper combining all above steps  
+- **BiologicalSequence** — abstract base class defining the interface: `len()`, indexing/slicing, `str()`, `check_alphabet()`.
+- **NucleicAcidSequence** — base class for nucleic acids with `complement()`, `reverse()`, `reverse_complement()`.
+  - **DNASequence** — DNA sequences, includes `transcribe()` method.
+  - **RNASequence** — RNA sequences.
+- **AminoAcidSequence** — protein sequences with `count_amino_acid()` method.
 
----
+### FASTQ Filtering
 
-### Main Script — bioseq_tools.py
-The main interface that connects both tools:
-- imports and exposes DNA/RNA and FASTQ functions  
-- allows you to run all operations from a single entry point  
+Function `filter_fastq()` filters FASTQ files by GC content, read length, and average quality.
+Implemented using **Biopython** (`SeqIO`, `gc_fraction`).
 
-Main functions:
-- `run_dna_rna_tools(*args)` — for sequence analysis and transformations  
-- `run_fastq_filter(input_fastq, output_fastq, **kwargs)` — for FASTQ file filtering and saving  
-
----
 
 ### Bio Files Processor
-Additional tools for other biological formats:
-- `convert_multiline_fasta_to_oneline(input_fasta: str, output_fasta: str | None)` — make FASTA sequences single-line  
-- `parse_blast_output(input_file: str, output_file: str)` — extract best hits from BLAST text results and sort them alphabetically  
+
+Additional tools for biological file formats:
+- `convert_multiline_fasta_to_oneline()` — convert multiline FASTA to one-line format.
+- `parse_blast_output()` — extract best hits from BLAST results.
+
+## Installation
+
+```bash
+pip install -r requirements.txt
+```
 
 ## Example Usage
 
-### DNA/RNA Tools
+### DNA / RNA
 
 ```python
-from bioseq_tools import run_dna_rna_tools
+from bioseq_tools import DNASequence, RNASequence
 
-# Check if sequence is valid DNA/RNA
-print(run_dna_rna_tools("ATGC", "is_nucleic_acid"))      # True
+dna = DNASequence("ATGCGT")
+print(dna)                      # ATGCGT
+print(len(dna))                 # 6
+print(dna[1:4])                 # TGC
+print(dna.complement())         # TACGCA
+print(dna.reverse_complement()) # ACGCAT
+print(dna.transcribe())         # AUGCGU
 
-# Transcribe DNA → RNA
-print(run_dna_rna_tools("ATGC", "transcribe"))           # 'AUGC'
+rna = RNASequence("AUGCGU")
+print(rna.complement())         # UACGCA
+```
 
-# Reverse, complement, and reverse complement
-print(run_dna_rna_tools("ATGC", "reverse"))              # 'CGTA'
-print(run_dna_rna_tools("ATGC", "complement"))           # 'TACG'
-print(run_dna_rna_tools("ATGC", "reverse_complement"))   # 'GCAT'
-
-# Multiple sequences
-print(run_dna_rna_tools("ATG", "AAT", "reverse"))        # ['GTA', 'TAA']
-````
-
-After running these commands,
-you will see the results of each DNA/RNA operation printed directly in the console.
-
----
-
-### FASTQ Tools
+### Protein
 
 ```python
-from bioseq_tools import run_fastq_filter
+from bioseq_tools import AminoAcidSequence
 
-# Read, filter, and save FASTQ data automatically
-run_fastq_filter(
+protein = AminoAcidSequence("MVLSPADKTN")
+print(len(protein))                  # 10
+print(protein[0:3])                  # MVL
+print(protein.count_amino_acid("V")) # 1
+```
+
+### FASTQ Filtering
+
+```python
+from bioseq_tools import filter_fastq
+
+filter_fastq(
     input_fastq="example_data/sample.fastq",
     output_fastq="filtered_sample.fastq",
     gc_bounds=(40, 60),
+    length_bounds=(50, 300),
     quality_threshold=30
 )
-# Output file: filtered/filtered_sample.fastq
 ```
-
-This will:
-
-1. Read the FASTQ file,
-2. Filter sequences by GC content and average quality,
-3. Save the result safely to the `filtered/` folder.
-
----
-
-### Main Script — bioseq_tools.py
-
-```python
-from bioseq_tools import run_dna_rna_tools, run_fastq_filter
-
-# DNA/RNA operations
-print(run_dna_rna_tools("ATGC", "reverse_complement"))   # 'GCAT'
-
-# FASTQ filtering
-run_fastq_filter(
-    input_fastq="example_data/sample.fastq",
-    output_fastq="filtered_output.fastq",
-    gc_bounds=(40, 70),
-    quality_threshold=25
-)
-```
-
-`bioseq_tools.py` acts as a single entry point —
-it lets you use both DNA/RNA and FASTQ functions from one file.
-
----
-
 ### Bio Files Processor
 
 ```python
 from bio_files_processor import convert_multiline_fasta_to_oneline, parse_blast_output
 
-# Convert multiline FASTA → one-line format
-convert_multiline_fasta_to_oneline("example_data/input.fasta")
-# Creates: example_data/input_oneline.fasta
-
-# Parse BLAST results and extract best hits
-parse_blast_output("example_data/blast_results.txt", "parsed_hits.txt")
-# Creates: parsed_hits.txt (sorted alphabetically)
+convert_multiline_fasta_to_oneline("input.fasta")
+parse_blast_output("blast_results.txt", "parsed_hits.txt")
 ```
 
-These utilities handle biological text files directly —
-you can quickly clean FASTA sequences or extract key results from BLAST outputs.
+## Requirements
 
----
-
-### Full Workflow Example
-
-```python
-from bioseq_tools import run_dna_rna_tools, run_fastq_filter
-from bio_files_processor import convert_multiline_fasta_to_oneline, parse_blast_output
-
-# 1. DNA/RNA operations
-dna = "ATGCGT"
-print("Original:", dna)
-print("Transcribed:", run_dna_rna_tools(dna, "transcribe"))
-print("Reverse complement:", run_dna_rna_tools(dna, "reverse_complement"))
-
-# 2. FASTQ filtering
-run_fastq_filter(
-    input_fastq="example_data/sample.fastq",
-    output_fastq="filtered_sample.fastq",
-    gc_bounds=(40, 60),
-    quality_threshold=30
-)
-
-# 3. FASTA and BLAST file processing
-convert_multiline_fasta_to_oneline("example_data/input.fasta")
-parse_blast_output("example_data/blast_results.txt", "parsed_hits.txt")
-
-print("All processing steps completed successfully.")
-```
-
-This single script demonstrates the entire workflow:
-
-1. Works with DNA/RNA sequences,
-2. Filters FASTQ reads,
-3. Processes FASTA and BLAST files.
-   All output files are saved automatically inside the project folders.
-
-```
-
+See `requirements.txt`.
